@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import classNames from 'classnames';
 import 'bulma/css/bulma.css';
 import './App.scss';
@@ -23,10 +23,13 @@ enum SortType {
 }
 
 export const App: React.FC = () => {
+  const originalGoodsRef = useRef([...goodsFromServer]);
+
+  const [goods, setGoods] = useState<string[]>([...goodsFromServer]);
   const [sortType, setSortType] = useState<SortType>(SortType.None);
   const [isReversed, setIsReversed] = useState<boolean>(false);
 
-  const sortGoods = (items: string[], type: SortType, reverse: boolean) => {
+  const sortGoods = (items: string[], type: SortType): string[] => {
     const sorted = [...items];
 
     switch (type) {
@@ -40,26 +43,38 @@ export const App: React.FC = () => {
         break;
     }
 
-    return reverse ? sorted.reverse() : sorted;
+    return sorted;
   };
 
-  const goods = sortGoods(goodsFromServer, sortType, isReversed);
-
   const handleSort = (type: SortType) => {
+    const base = [...originalGoodsRef.current];
+    const sorted = sortGoods(base, type);
+
+    if (isReversed) {
+      sorted.reverse();
+    }
+
+    setGoods(sorted);
     setSortType(type);
-    setIsReversed(false);
   };
 
   const handleReverse = () => {
-    setIsReversed(prev => !prev);
+    const newReversed = !isReversed;
+    const updatedGoods = [...goods].reverse();
+
+    setGoods(updatedGoods);
+    setIsReversed(newReversed);
   };
 
   const handleReset = () => {
+    setGoods([...originalGoodsRef.current]);
     setSortType(SortType.None);
     setIsReversed(false);
   };
 
-  const isChanged = sortType !== SortType.None || isReversed;
+  const isChanged = () => {
+    return goods.join(',') !== originalGoodsRef.current.join(',');
+  };
 
   return (
     <div className="section content">
@@ -94,7 +109,7 @@ export const App: React.FC = () => {
           Reverse
         </button>
 
-        {isChanged && (
+        {isChanged() && (
           <button
             type="button"
             className="button is-danger"
